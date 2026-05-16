@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Física de la Desfibrilación Externa — Herramienta Educativa 3D</title>
+  <link rel="stylesheet" href="css/style.css">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <h1>Física de la Desfibrilación Externa</h1>
+    <p class="subtitle">Vectores de corriente y cobertura miocárdica según posición de parches</p>
+  </header>
+
+  <!-- NAVEGACIÓN POR PESTAÑAS -->
+  <nav class="app-tabs">
+    <button class="app-tab active" data-tab="viewer">Visualizador 3D</button>
+    <button class="app-tab" data-tab="review">Revisión Narrativa</button>
+  </nav>
+
+  <!-- MAIN LAYOUT -->
+  <main>
+
+    <!-- VIEWPORT 3D -->
+    <div id="viewport-container">
+      <canvas id="three-canvas"></canvas>
+
+      <!-- Pantalla de carga -->
+      <div id="loading-screen">
+        <div class="loading-content">
+          <div class="loading-icon">⚡</div>
+          <p>Cargando modelos anatómicos…</p>
+          <div class="progress-bar-container">
+            <div id="progress-bar"></div>
+          </div>
+          <p id="loading-detail" class="loading-detail">Iniciando…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL DE CONTROL -->
+    <aside id="control-panel">
+
+      <!-- Modo de desfibrilación -->
+      <section class="panel-section">
+        <h2 class="section-title">Modo de desfibrilación</h2>
+        <div class="mode-buttons">
+          <button class="mode-btn active" data-mode="ANAT">
+            <span class="mode-label anat-label">♥</span>
+            <span class="mode-desc">Solo anatomía</span>
+          </button>
+          <button class="mode-btn" data-mode="AL">
+            <span class="mode-label">AL</span>
+            <span class="mode-desc">Anterolateral</span>
+          </button>
+          <button class="mode-btn" data-mode="AP">
+            <span class="mode-label">AP</span>
+            <span class="mode-desc">Anteroposterior</span>
+          </button>
+          <button class="mode-btn" data-mode="DSD">
+            <span class="mode-label">DSD</span>
+            <span class="mode-desc">Doble Secuencial</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Opacidad del torso -->
+      <section class="panel-section">
+        <h2 class="section-title">Opacidad del torso</h2>
+        <div class="opacity-control">
+          <div class="slider-row">
+            <span class="slider-label">0%</span>
+            <input type="range" id="torsoOpacity" min="0" max="100" value="70">
+            <span class="slider-label">100%</span>
+          </div>
+          <div class="opacity-value-row">
+            <span id="opacityValue">70%</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Información clínica -->
+      <section class="panel-section" id="clinical-info-section">
+        <h2 class="section-title">Información clínica</h2>
+        <div id="clinical-info">
+
+          <!-- Modo ANAT -->
+          <div class="info-content" id="info-ANAT">
+            <div class="info-header anat">
+              <span class="info-mode-badge">♥</span>
+              <span class="info-mode-title">Vista anatómica</span>
+            </div>
+            <div class="info-body">
+              <div class="info-coverage">
+                <span class="coverage-label">Torso y corazón</span>
+                <span class="coverage-text">Vista sin parches ni vectores de desfibrilación.</span>
+              </div>
+              <div class="info-divider"></div>
+              <div class="info-anat-note">
+                <p>Use el <strong>slider de opacidad</strong> para hacer el torso transparente y visualizar el corazón en su posición anatómica.</p>
+                <ul class="anat-list">
+                  <li>Mediastino medio, hemitórax izquierdo</li>
+                  <li>Eje oblicuo ~45° (base → ápex)</li>
+                  <li>2/3 del corazón a la izquierda del esternón</li>
+                </ul>
+              </div>
+              <div class="info-divider"></div>
+              <p class="anat-hint">Seleccione un modo de desfibrilación para visualizar la colocación de parches y los vectores de corriente.</p>
+            </div>
+          </div>
+
+          <!-- Modo AL -->
+          <div class="info-content active" id="info-AL">
+            <div class="info-header al">
+              <span class="info-mode-badge">AL</span>
+              <span class="info-mode-title">Posición Anterolateral <em>(Estándar)</em></span>
+            </div>
+            <div class="info-body">
+              <div class="info-row">
+                <span class="info-label">Parche anterior</span>
+                <span class="info-value">Infraclavicular derecho</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Parche lateral</span>
+                <span class="info-value">Axilar izquierdo (5–6º EIC)</span>
+              </div>
+              <div class="info-divider"></div>
+              <div class="info-row">
+                <span class="info-label">Impedancia transtorácica</span>
+                <span class="info-value highlight">~93,3 Ω</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Corriente media</span>
+                <span class="info-value highlight">~16,8 A</span>
+              </div>
+              <div class="info-divider"></div>
+              <div class="coverage-detail">
+                <div class="cov-block cubre">
+                  <div class="cov-header"><span class="cov-icon cubre">✓</span><strong>Vector AL — Cubre</strong></div>
+                  <p>Pared anterior del VI, pared lateral del VI, ápex del VI y porción anterior del tabique IV. Es el vector que mejor alcanza el ápex y la cara libre lateral del VI.</p>
+                </div>
+                <div class="cov-block no-cubre">
+                  <div class="cov-header"><span class="cov-icon no-cubre">✗</span><strong>Vector AL — No cubre</strong></div>
+                  <p>Pared posterior del VI <em>(zona de refugio principal de los rotores en FV refractaria)</em>, porción posterior del tabique IV y pared libre del VD de forma deficiente.</p>
+                </div>
+              </div>
+              <div class="info-divider"></div>
+              <div class="survival-box al">
+                <div class="survival-label">Supervivencia FV refractaria</div>
+                <div class="survival-value">13,3%</div>
+                <div class="survival-ref">Cheskes et al., NEJM 2022</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modo AP -->
+          <div class="info-content" id="info-AP">
+            <div class="info-header ap">
+              <span class="info-mode-badge">AP</span>
+              <span class="info-mode-title">Posición Anteroposterior</span>
+            </div>
+            <div class="info-body">
+              <div class="info-row">
+                <span class="info-label">Parche anterior</span>
+                <span class="info-value">Paraesternal izquierdo (3–4º EIC)</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Parche posterior</span>
+                <span class="info-value">Infraescapular izquierdo</span>
+              </div>
+              <div class="info-divider"></div>
+              <div class="info-row">
+                <span class="info-label">Impedancia transtorácica</span>
+                <span class="info-value highlight">~70,8 Ω <small class="delta">−24% vs AL</small></span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Corriente media</span>
+                <span class="info-value highlight">~19,4 A <small class="delta positive">+16% vs AL</small></span>
+              </div>
+              <div class="info-divider"></div>
+              <div class="coverage-detail">
+                <div class="cov-block cubre">
+                  <div class="cov-header"><span class="cov-icon cubre">✓</span><strong>Vector AP — Cubre</strong></div>
+                  <p>Pared posterior del VI, tabique IV completo (anterior y posterior) y porción posterobasal del VI. Es el único vector que alcanza directamente la pared posterior.</p>
+                </div>
+                <div class="cov-block no-cubre">
+                  <div class="cov-header"><span class="cov-icon no-cubre">✗</span><strong>Vector AP — No cubre</strong></div>
+                  <p>Pared lateral del VI (queda tangencial al vector), ápex del VI (queda inferior al eje principal del vector) y pared libre del VD (queda lateral al trayecto sagital de la corriente).</p>
+                </div>
+              </div>
+              <div class="info-divider"></div>
+              <div class="survival-box ap">
+                <div class="survival-label">Supervivencia FV refractaria</div>
+                <div class="survival-value">21,7%</div>
+                <div class="survival-ref">Cheskes et al., NEJM 2022</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modo DSD -->
+          <div class="info-content" id="info-DSD">
+            <div class="info-header dsd">
+              <span class="info-mode-badge">DSD</span>
+              <span class="info-mode-title">Doble Desfibrilación Secuencial</span>
+            </div>
+            <div class="info-body">
+              <div class="info-row">
+                <span class="info-label">Choque 1</span>
+                <span class="info-value al-text">AL (Anterolateral)</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Choque 2</span>
+                <span class="info-value ap-text">AP (Anteroposterior)</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Intervalo</span>
+                <span class="info-value">~500 ms</span>
+              </div>
+              <div class="info-divider"></div>
+              <div class="info-dsd-note">
+                <p>La posición AP — no la mayor corriente — es el <strong>predictor independiente de ROSC</strong>.</p>
+                <p class="or-text">aOR 2,01 (IC95%: 1,12–3,59)</p>
+              </div>
+              <div class="info-divider"></div>
+              <div class="coverage-detail">
+                <div class="cov-block dsd-cubre">
+                  <div class="cov-header"><span class="cov-icon cubre">✓</span><strong>Complementariedad geométrica</strong></div>
+                  <p>La suma de ambos vectores cubre prácticamente la <strong>totalidad del miocardio ventricular</strong>, eliminando las zonas ciegas de cada vector por separado. No es redundancia: es cobertura complementaria.</p>
+                </div>
+              </div>
+              <div class="info-divider"></div>
+              <div class="survival-box dsd">
+                <div class="survival-label">Supervivencia FV refractaria</div>
+                <div class="survival-value">30,4%</div>
+                <div class="survival-sub">Outcome neurológico intacto: <strong>RR 2,21</strong></div>
+                <div class="survival-ref">DOSE VF Trial · Cheskes et al., NEJM 2022</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Leyenda -->
+      <section class="panel-section">
+        <h2 class="section-title">Leyenda</h2>
+        <div class="legend">
+          <div class="legend-item">
+            <span class="legend-dot al"></span>
+            <span>Vector AL / Parches anterolaterales</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot ap"></span>
+            <span>Vector AP / Parches anteroposterior</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-line"></span>
+            <span>Zona cubierta (semitransparente)</span>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+  </main>
+
+  <!-- PANEL DE REVISIÓN NARRATIVA -->
+  <section id="review-panel" hidden>
+    <div class="review-container">
+
+      <!-- Cabecera -->
+      <div class="review-meta">
+        <h1 class="review-title">Desfibrilación en Fibrilación Ventricular Refractaria: Física de la Corriente, Posición de Parches y Doble Desfibrilación Secuencial</h1>
+        <span class="review-badge">Revisión Narrativa</span>
+      </div>
+
+      <div class="review-author-block">
+        <strong>Hipólito García</strong>
+        Médico de Urgencias y Emergencias ·
+        Hospital Universitari Joan XXIII, Tarragona · SEM Catalunya
+      </div>
+
+      <!-- Resumen -->
+      <div class="review-abstract">
+        <div class="review-abstract-label">Resumen</div>
+        <p>La fibrilación ventricular refractaria (FVr) —aquella que persiste tras tres o más choques desfibriladores— complica un porcentaje significativo de las paradas cardiorrespiratorias extrahospitalarias en FV (Cheskes et al., NEJM 2022) y se asocia a una mortalidad superior al 85% con el tratamiento estándar. Durante décadas la respuesta ante la FVr ha consistido en escalar la energía del choque, ignorando un factor determinante: la posición de los parches condiciona tanto la impedancia transtorácica como la geometría del vector eléctrico y, por tanto, qué masa miocárdica se despolariza realmente. El vector anterolateral (AL) estándar deja sin cubrir la pared posterior del ventrículo izquierdo, zona de refugio de los rotores de reentrada que perpetúan la FVr. La posición anteroposterior (AP) genera un vector sagital que alcanza directamente esa región, y la doble desfibrilación secuencial (DSD) combina ambos vectores cubriendo prácticamente la totalidad del miocardio ventricular. El ensayo DOSE VF (Cheskes et al., NEJM 2022) —único ensayo de fase 3 en este campo— demostró supervivencias del 13,3% (AL), 21,7% (AP) y 30,4% (DSD), con outcome neurológico intacto triplicado en el grupo DSD. Esta revisión examina los fundamentos físicos de esos resultados y sus implicaciones para la práctica clínica.</p>
+      </div>
+
+      <!-- Sección 1 -->
+      <div class="review-section">
+        <h2>1. Introducción</h2>
+        <p>La fibrilación ventricular refractaria supone uno de los escenarios más desafiantes de la medicina de urgencias y emergencias extrahospitalarias. Cuando la FV no responde a los tres primeros choques convencionales, la probabilidad de supervivencia se desploma y el equipo asistencial se enfrenta a una situación en la que las herramientas habituales parecen insuficientes.</p>
+        <p>Históricamente, la respuesta protocolizada ha consistido en escalar la energía del choque —de 200 J a 360 J en corriente bifásica— y continuar con soporte vital avanzado. Sin embargo, esta estrategia ignora un factor físico fundamental: la corriente que atraviesa el corazón depende no solo de la energía seleccionada, sino de la impedancia transtorácica (ITT) y, sobre todo, de la geometría del vector eléctrico determinado por la posición de los parches. Un vector mal orientado deposita la mayor parte de su energía en tejidos no miocárdicos —músculo, grasa, pulmón, caja torácica— dejando una densidad de corriente insuficiente sobre las regiones ventriculares críticas.</p>
+      </div>
+
+      <!-- Sección 2 -->
+      <div class="review-section">
+        <h2>2. Definición y epidemiología de la FV refractaria</h2>
+        <p>Se define FVr como la fibrilación ventricular que persiste tras la administración de tres o más choques de desfibrilación. Esta definición operativa, adoptada en el ensayo DOSE VF, es la más extendida en la literatura y abarca entre el 8 y el 12% de todas las paradas cardiorrespiratorias extrahospitalarias con ritmo desfibrilable inicial.</p>
+        <p>La mortalidad de la FVr con tratamiento estándar supera el 85%. Más allá del pronóstico, la FVr plantea una pregunta fisiopatológica relevante: ¿por qué persiste la FV tras tres choques adecuados? La hipótesis más consolidada señala la existencia de rotores de reentrada en la pared posterior del ventrículo izquierdo —una región anatómicamente periférica respecto al vector AL estándar— que actúan como marcapasos ectópicos sosteniendo el caos eléctrico ventricular.</p>
+      </div>
+
+      <!-- Sección 3 -->
+      <div class="review-section">
+        <h2>3. Física de la desfibrilación: corriente, impedancia y cobertura miocárdica</h2>
+        <p>El objetivo de la desfibrilación es despolarizar simultáneamente una masa crítica del miocardio ventricular —estimada en el 95% de la masa funcional— para extinguir todos los frentes de onda de reentrada activos. La corriente de pico que alcanza el corazón (I) sigue la relación:</p>
+        <div class="review-callout purple">
+          <p><strong>I = V / Z</strong> &nbsp;→&nbsp; donde V es el voltaje de pico del condensador y Z es la impedancia transtorácica total</p>
+        </div>
+        <p>La ITT en adultos oscila entre 60 y 100 Ω (media ~70–95 Ω) y depende del espesor y composición de los tejidos interpuestos entre el parche y el miocardio. La posición de los parches determina simultáneamente dos factores físicos independientes: (1) la magnitud de la ITT —y por tanto la corriente de pico— y (2) la dirección del vector eléctrico —y por tanto qué regiones del miocardio son atravesadas.</p>
+
+        <h3>Posición anterolateral (AL) — estándar</h3>
+        <p>El parche anterior se coloca en la región infraclavicular derecha y el parche lateral en la línea mediaxilar izquierda (5.º–6.º EIC). El vector resultante es oblicuo, de arriba-derecha a abajo-izquierda, y atraviesa preferentemente la pared anterior del VI, el ápex y la cara lateral. La ITT media con esta posición es de <strong>~93,3 Ω</strong>, con una corriente media de <strong>~16,8 A</strong>.</p>
+        <p>El talón de Aquiles del vector AL es la pared posterior del VI: la dirección oblicua hace que la densidad de corriente en la región posterobasal sea significativamente inferior a la de la pared anterior, generando la denominada «zona de refugio» para los rotores de reentrada que perpetúan la FVr.</p>
+
+        <h3>Posición anteroposterior (AP)</h3>
+        <p>El parche anterior se sitúa paraesternal izquierdo (3.º–4.º EIC) y el parche posterior infraescapular izquierdo. El vector resultante es sagital, de anterior a posterior, y atraviesa perpendicularmente el tabique interventricular, la pared anterior del VI y —fundamentalmente— la pared posterior del VI.</p>
+        <p>La menor interposición de tejido no miocárdico en la trayectoria sagital reduce la ITT a <strong>~70,8 Ω (−24% vs AL)</strong>, elevando la corriente media a <strong>~19,4 A (+16% vs AL)</strong>. Pero más determinante que el incremento de corriente es la reorientación del vector, que ahora alcanza directamente la zona posterior que el vector AL deja sin cubrir.</p>
+      </div>
+
+      <!-- Sección 4 -->
+      <div class="review-section">
+        <h2>4. La doble desfibrilación secuencial (DSD)</h2>
+        <p>La DSD consiste en la administración de dos choques desfibriladores desde dos pares de parches independientes —uno en posición AL y otro en AP— con un intervalo de aproximadamente 500 ms. La técnica requiere dos desfibriladores y cuatro parches adheridos simultáneamente al paciente.</p>
+        <p>El mecanismo exacto de la superioridad de la DSD sobre la posición AP aislada no está definitivamente establecido. Las hipótesis más plausibles incluyen:</p>
+        <p><strong>Cobertura miocárdica complementaria:</strong> el vector AL cubre la cara anterior y lateral, mientras que el vector AP cubre la cara posterior y septal. La suma abarca prácticamente la totalidad del miocardio ventricular, eliminando las zonas de refugio de ambos vectores por separado. No es redundancia, es complementariedad geométrica.</p>
+        <div class="review-callout green">
+          <p>Un hallazgo crítico del análisis secundario del DOSE VF es que la <strong>posición AP —y no la mayor corriente que genera— es el predictor independiente de ROSC</strong> (aOR 2,01; IC95%: 1,12–3,59). La geometría del vector es más determinante que la intensidad de corriente.</p>
+        </div>
+      </div>
+
+      <!-- Sección 5 -->
+      <div class="review-section">
+        <h2>5. El ensayo DOSE VF</h2>
+        <p>El ensayo DOSE VF (Double Sequential External Defibrillation for Refractory Ventricular Fibrillation) es hasta la fecha el único ensayo clínico aleatorizado de fase 3 que ha evaluado prospectivamente el impacto de la posición de parches en la FVr extrahospitalaria. Fue interrumpido prematuramente por la pandemia de COVID-19, con 405 de los 930 pacientes planificados enrolados.</p>
+        <p><strong>Diseño:</strong> ECA de tres grupos, multicéntrico, Canadá. Pacientes adultos con PCR extrahospitalaria en FVr (≥3 choques sin conversión). N = 405 pacientes.</p>
+
+        <table class="review-results-table">
+          <thead>
+            <tr>
+              <th>Grupo</th>
+              <th>Estrategia</th>
+              <th>Supervivencia al alta</th>
+              <th>Outcome neurológico intacto</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-al">AL</td>
+              <td>Anterolateral (control)</td>
+              <td class="td-num td-al">13,3%</td>
+              <td class="td-rr">Referencia</td>
+            </tr>
+            <tr>
+              <td class="td-ap">AP</td>
+              <td>Anteroposterior</td>
+              <td class="td-num td-ap">21,7%</td>
+              <td class="td-rr">p=ns</td>
+            </tr>
+            <tr>
+              <td class="td-dsd">DSD</td>
+              <td>Doble secuencial (AL + AP)</td>
+              <td class="td-num td-dsd">30,4%</td>
+              <td class="td-rr">RR 2,21 vs AL</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Sección 6 -->
+      <div class="review-section">
+        <h2>6. Implicaciones para la práctica clínica</h2>
+        <p><strong>La posición AP debe ser la primera alternativa ante la FVr:</strong> con solo reubicar el parche posterior de la axila izquierda a la región infraescapular izquierda, la supervivencia aumenta un 63% relativo. Esta intervención no requiere equipamiento adicional y puede aplicarse a partir del cuarto choque.</p>
+        <p><strong>La DSD debe considerarse donde haya dos desfibriladores disponibles:</strong> en entornos con múltiples equipos (SCU, SEM con dos unidades, hospitales), la DSD debe contemplarse como estrategia de rescate en la FVr. El beneficio absoluto es de 17 puntos porcentuales sobre el estándar.</p>
+        <p><strong>El entrenamiento en la posición posterior es esencial:</strong> la colocación infraescapular requiere movilizar al paciente o prever la adherencia del parche al inicio de la resucitación. Esta planificación del escenario debe incorporarse a los protocolos de SVA.</p>
+        <p><strong>No escalar solo la energía:</strong> la evidencia respalda que la reorientación del vector es más eficaz que incrementar los julios sin cambiar la posición. Escalar la energía manteniendo la posición AL es una estrategia de eficacia inferior ante la FVr.</p>
+      </div>
+
+      <!-- Sección 7 -->
+      <div class="review-section">
+        <h2>7. Conclusiones</h2>
+        <p>La FVr extrahospitalaria ha pasado de ser un problema sin solución demostrada a contar con intervenciones simples, coherentes con la física de la corriente eléctrica y la fisiopatología de la reentrada ventricular, que muestran señales clínicas prometedoras. El eje del avance no es farmacológico ni tecnológico, sino geométrico: la dirección del vector eléctrico determina qué masa miocárdica se despolariza, y la pared posterior del VI —zona de refugio de los rotores— solo se alcanza eficientemente con un vector de orientación sagital.</p>
+        <p>La comprensión de los principios físicos de la desfibrilación —impedancia, corriente, cobertura miocárdica— es indispensable para que los profesionales de urgencias y emergencias tomen decisiones informadas ante la FVr y apliquen las estrategias con mayor nivel de evidencia disponible.</p>
+      </div>
+
+      <!-- Bibliografía -->
+      <div class="review-section">
+        <h2>Referencias</h2>
+        <ol class="ref-list">
+          <li>
+            <span class="ref-num">1</span>
+            <div>
+              Cheskes S, Drennan IR, Turner L, et al. The impact of defibrillation current and pad position on return of spontaneous circulation during refractory ventricular fibrillation. <em>Resuscitation.</em> 2026;111061.<br>
+              <a class="ref-doi" href="https://doi.org/10.1016/j.resuscitation.2026.111061" target="_blank" rel="noopener">DOI: 10.1016/j.resuscitation.2026.111061</a>
+            </div>
+          </li>
+          <li>
+            <span class="ref-num">2</span>
+            <div>
+              Cheskes S, McLeod SL. Double sequential external defibrillation for refractory ventricular fibrillation: the science, the controversies and the future. <em>J Electrocardiol.</em> 2025;91:154046.<br>
+              <a class="ref-doi" href="https://doi.org/10.1016/j.jelectrocard.2025.154046" target="_blank" rel="noopener">DOI: 10.1016/j.jelectrocard.2025.154046</a>
+            </div>
+          </li>
+          <li>
+            <span class="ref-num">3</span>
+            <div>
+              Kirkegaard BL, Cheskes S, Andersen LW, Drennan IR. Double sequential defibrillation: is it ready for prime time? <em>Curr Opin Crit Care.</em> 2025;31(6):701–706.<br>
+              <a class="ref-doi" href="https://doi.org/10.1097/MCC.0000000000001323" target="_blank" rel="noopener">DOI: 10.1097/MCC.0000000000001323</a>
+            </div>
+          </li>
+          <li>
+            <span class="ref-num">4</span>
+            <div>
+              Cheskes S, Drennan IR, Turner L, et al. The impact of alternate defibrillation strategies on shock-refractory and recurrent ventricular fibrillation: A secondary analysis of the DOSE VF cluster randomized controlled trial. <em>Resuscitation.</em> 2024;198:110186.<br>
+              <a class="ref-doi" href="https://doi.org/10.1016/j.resuscitation.2024.110186" target="_blank" rel="noopener">DOI: 10.1016/j.resuscitation.2024.110186</a>
+            </div>
+          </li>
+          <li>
+            <span class="ref-num">5</span>
+            <div>
+              Lupton JR, Newgard CD, Dennis D, et al. Initial Defibrillator Pad Position and Outcomes for Shockable Out-of-Hospital Cardiac Arrest. <em>JAMA Netw Open.</em> 2024;7(9):e2431673.<br>
+              <a class="ref-doi" href="https://doi.org/10.1001/jamanetworkopen.2024.31673" target="_blank" rel="noopener">DOI: 10.1001/jamanetworkopen.2024.31673</a>
+            </div>
+          </li>
+          <li>
+            <span class="ref-num">6</span>
+            <div>
+              Cheskes S, McLeod S, Scales DC. Double sequential external defibrillation for refractory ventricular fibrillation. <em>Intensive Care Med.</em> 2023;49(4):455–457.<br>
+              <a class="ref-doi" href="https://doi.org/10.1007/s00134-023-06993-1" target="_blank" rel="noopener">DOI: 10.1007/s00134-023-06993-1</a>
+            </div>
+          </li>
+          <li>
+            <span class="ref-num">7</span>
+            <div>
+              Cheskes S, Verbeek PR, Drennan IR, et al. Defibrillation Strategies for Refractory Ventricular Fibrillation. <em>N Engl J Med.</em> 2022;387(21):1947–1956.<br>
+              <a class="ref-doi" href="https://doi.org/10.1056/NEJMoa2207304" target="_blank" rel="noopener">DOI: 10.1056/NEJMoa2207304</a>
+            </div>
+          </li>
+        </ol>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-attribution">
+        <strong>Modelos 3D:</strong>
+        "Realistic Human Heart" por <em>neshallads</em> (CC-BY 4.0) ·
+        "Human Anatomy: Male Torso" por <em>BraineyBites</em> (CC-BY 4.0)
+      </div>
+      <div class="footer-science">
+        <strong>Base científica:</strong>
+        Cheskes et al. DOSE VF Trial. <em>NEJM</em> 2022. DOI: 10.1056/NEJMoa2207304
+      </div>
+      <div class="footer-author">
+        Desarrollado por <strong>Hipólito García</strong> ·
+        Médico de Urgencias y Emergencias ·
+        Hospital Universitari Joan XXIII – Tarragona / SEM Catalunya
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+
+  <script>
+    (function () {
+      var tabs = document.querySelectorAll('.app-tab');
+      var main = document.querySelector('main');
+      var reviewPanel = document.getElementById('review-panel');
+
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          tabs.forEach(function (t) { t.classList.toggle('active', t === tab); });
+          if (tab.dataset.tab === 'viewer') {
+            main.style.display = '';
+            reviewPanel.hidden = true;
+          } else {
+            main.style.display = 'none';
+            reviewPanel.hidden = false;
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
